@@ -7,6 +7,7 @@ All notable changes to this project will be documented in this file.
 ### TODO
 - Fix QL indices
 - Refactor notification system
+- Show multiple qubits in one site
 
 ## 0.0.1
 ### Added
