@@ -2,7 +2,7 @@ import sys
 import signal
 from PyQt5.QtWidgets import QApplication
 from MainWindow import MainWindow
-from Crossbar.Model import CrossbarModel
+from Crossbar.CrossbarModel import CrossbarModel
 
 """
 Main class that starts the simulator

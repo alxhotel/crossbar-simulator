@@ -1,4 +1,4 @@
-from PyQt5.QtWidgets import QMainWindow, QHBoxLayout, QWidget, QPushButton
+from PyQt5.QtWidgets import QMainWindow, QHBoxLayout, QWidget, QPushButton, QErrorMessage
 from CrossbarGrid import CrossbarGrid
 
 """
@@ -6,8 +6,8 @@ Class that generates the GUI and handles the button events
 """
 class MainWindow(QMainWindow):
 	"""
-	:param.title title of the main window
-	:param.model a crossbar model instance
+	:param.title    title of the main window
+	:param.model    a crossbar model instance
 	"""
 	def __init__(self, title, model):
 		super(MainWindow, self).__init__()
@@ -44,7 +44,7 @@ class MainWindow(QMainWindow):
 			self._model.evolve()
 		except Exception as e:
 			print(e.args)
-			error_dialog = QtWidget.QErrorMessage()
+			error_dialog = QErrorMessage()
 			error_dialog.showMessage(e.args)
 	
 	"""
