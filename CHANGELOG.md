@@ -5,9 +5,13 @@ All notable changes to this project will be documented in this file.
 ## [Unreleased]
 
 ### TODO
-- Fix QL indices
 - Refactor notification system
 - Show multiple qubits in one site
+- Implement basic actions:
+   - Shuttling Hor. & Ver.
+   - One qubit gate
+   - Two qubit gate
+   - Measurement
 
 ## 0.0.1
 ### Added
@@ -16,3 +20,4 @@ All notable changes to this project will be documented in this file.
 ### Fix
 - Fix CL and HL indices
 - Fix shuttling
+- Fix QL indices

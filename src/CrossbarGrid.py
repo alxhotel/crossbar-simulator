@@ -59,7 +59,9 @@ class TextValueChanger(QGraphicsTextItem):
         self.__callback = callback
         self.__data = data
 
-# Crossbar layout
+"""
+Main crossbar grid layout
+"""
 class CrossbarGrid(QGraphicsView):
     __OUTER_MARGIN = 30
     __SQUARE_WIDTH = 40
@@ -74,6 +76,11 @@ class CrossbarGrid(QGraphicsView):
     __RED_PEN_DASHED = QPen(QBrush(QColor(200, 100, 100)), __PEN_WIDTH, Qt.DotLine)
     __BLUE_PEN_DASHED = QPen(QBrush(QColor(100, 100, 200)), __PEN_WIDTH, Qt.DotLine)
 
+    """
+    Initialize the Crossbar grid
+    :param.parent   the parent window
+    :param.model    the model of the crossbar
+    """
     def __init__(self, parent, model):
         super(CrossbarGrid, self).__init__(parent)
         self.__model = model
@@ -90,17 +97,20 @@ class CrossbarGrid(QGraphicsView):
         # Controll lines
         self.__h_line_items = self.__draw_h_lines(h_count)
         self.__v_line_items = self.__draw_v_lines(v_count)
-        self.__d_values = self.__draw_d_lines(d_count)
+        self.__d_text_items = self.__draw_d_lines(d_count)
         
         # Qubit positions
-        self.__qubits = {}
+        self.__qubit_items = {}
         for q_id, _ in self.__model.iter_qubits_positions():
-            self.__qubits[q_id] = QubitCircle(q_id)
-            self.__scene.addItem(self.__qubits[q_id])
+            self.__qubit_items[q_id] = QubitCircle(q_id)
+            self.__scene.addItem(self.__qubit_items[q_id])
         
         # Subscibe to all notifications
         self.__model.subscribe(self)
 
+    """
+    Draw the horizontal (row) lines
+    """
     def __draw_h_lines(self, count):
         line_items = {}
         i = 0
@@ -122,6 +132,9 @@ class CrossbarGrid(QGraphicsView):
             i += 1
         return line_items
 
+    """
+    Draw the vertical (column) lines
+    """
     def __draw_v_lines(self, count):
         line_items = {}
         i = 0
@@ -143,6 +156,9 @@ class CrossbarGrid(QGraphicsView):
             i += 1
         return line_items
 
+    """
+    Draw the diagonal (qubit) lines
+    """
     def __draw_d_lines(self, count):
         value_items = {}
         side = int((count - 1) / 2)
@@ -170,18 +186,24 @@ class CrossbarGrid(QGraphicsView):
             i += 1
         return value_items
 
-    # Handle the changes in the model
+    """
+    Handle the changes in the model
+    """
     def notified(self):
+        # Repaint horizontal lines
         for i in self.__h_line_items:
             pen = self.__BLUE_PEN_DASHED if self.__model.h_barrier_down(i) else self.__BLUE_PEN
             self.__h_line_items[i].setPen(pen)
+        # Repaint vertical lines
         for i in self.__v_line_items:
             pen = self.__RED_PEN_DASHED if self.__model.v_barrier_down(i) else self.__RED_PEN
             self.__v_line_items[i].setPen(pen)
-        for i in self.__d_values:
-            self.__d_values[i].setPlainText(str(self.__model.d_line_value(i)))
+        # Repaint diagonal lines
+        for i in self.__d_text_items:
+            self.__d_text_items[i].setPlainText(str(self.__model.d_line_value(i)))
+        # Repaint the qubits
         for q_id, (i, j) in self.__model.iter_qubits_positions():
             y = self.__OUTER_MARGIN + (self.__m - i) * self.__SQUARE_WIDTH
             x = self.__OUTER_MARGIN + (j + 1) * self.__SQUARE_WIDTH
-            self.__qubits[q_id].setPos(x, y)
+            self.__qubit_items[q_id].setPos(x, y)
         self.update()
