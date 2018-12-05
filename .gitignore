@@ -1,6 +1,6 @@
-# IDE
-nbproject
-nb-configuration.xml
+# Compiled project
+cmake-build/
+cmake-build-debug/
 
-# Python
-__pycache__
+# IDE
+nbproject/
