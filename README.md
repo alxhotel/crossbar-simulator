@@ -6,17 +6,22 @@
 - CMake
 - Qt5
 
+## Library depedencies
+
+- libQasm
+- naxos
+
 ## Installation
 
-´´´
+```
 sudo apt-get install build-essential libfontconfig1 qt5-default
-´´´
+```
 
-## Files
+## Structure
 
 ```
-- App           -- main file of the program
-- MainWindow    -- handle the main layer of the GUI
-- CrossbarGrid  -- layout interface of the crossbar
-- Crossbar      -- folder which contains the crossbar model
+- gui			-- GUI elements
+- crossbar      -- Crossbar model
+- parser		-- cQASM parser
+- libs			-- Library dependencies
 ```

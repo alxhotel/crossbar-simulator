@@ -1,4 +1,4 @@
-# Crossbar Validator Version History
+# Crossbar Simulator Version History
 
 All notable changes to this project will be documented in this file.
 
@@ -9,13 +9,18 @@ All notable changes to this project will be documented in this file.
 - Show multiple qubits in one site
 - Implement basic actions:
    - Shuttling Hor. & Ver.
-   - One qubit gate
-   - Two qubit gates
+   - One qubit gate (Z Gate)
+   - Two qubit gates (Global gate)
    - Measurement
+- Check constraints
 
-## 0.0.1
+## 0.1.0
 ### Added
 - Translate pyhton to C++
+- Implement `libqasm` library
+- Settings with animation speed
+- Animations for:
+	- Z Gate
 
 ### Fix
 - Fix CL and HL indices
