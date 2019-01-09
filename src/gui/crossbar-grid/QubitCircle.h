@@ -12,13 +12,22 @@ class QubitCircle : public QGraphicsEllipseItem {
 	
 public:
 	// Constructor
-	QubitCircle(int q_id) : QGraphicsEllipseItem(0, 0, QubitCircle::RADIUS, QubitCircle::RADIUS) {
-		this->setBrush(QBrush(QColor(100, 200, 100, 200)));
+	QubitCircle(int q_id, bool is_ancillary) : QGraphicsEllipseItem(0, 0, QubitCircle::RADIUS, QubitCircle::RADIUS) {
 		QGraphicsTextItem* text = new QGraphicsTextItem(QString::number(q_id), this);
         if (q_id <= 9) {
             text->setPos(2, -3);
 		} else {
             text->setPos(-2, -3);
+		}
+		
+		if (is_ancillary)  {
+			// Blue
+			this->setBrush(QBrush(QColor(100, 100, 200, 250)));
+			text->setDefaultTextColor(QColor(255, 255, 255, 255));
+		} else {
+			// Green
+			this->setBrush(QBrush(QColor(100, 200, 100, 200)));
+			text->setDefaultTextColor(QColor(0, 0, 0, 255));
 		}
 	}
 	

@@ -32,7 +32,9 @@ set(SOURCES
 	crossbar/operations/Operation.h
 	crossbar/operations/Shuttling.h crossbar/operations/Shuttling.cpp
 	crossbar/operations/ZGate.h crossbar/operations/ZGate.cpp
+	crossbar/operations/SingleGate.h crossbar/operations/SingleGate.cpp
 	crossbar/operations/SqSwap.h crossbar/operations/SqSwap.cpp
+	crossbar/operations/Measurement.h crossbar/operations/Measurement.cpp
 	# Crossbat: Routing
 	crossbar/CrossbarRouter.h crossbar/CrossbarRouter.cpp
 	# Crossbar: constraint checker

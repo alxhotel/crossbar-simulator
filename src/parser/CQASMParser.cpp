@@ -55,32 +55,43 @@ Operation* CQASMParser::translate_operation(compiler::Operation* operation, int 
 		qubit_indices.push_back(operation->getTwoQubitPairs().second.getSelectedQubits().getIndices()[0]);
 	}
 	
+	// Make comparision case insensitive
+	std::string gate_type = operation->getType();
+	std::transform (gate_type.begin(), gate_type.end(),gate_type.begin(), ::tolower);
+	
 	// Shuttling
-	if (operation->getType() == "shuttle_up") {
+	if (gate_type == "shuttle_up") {
 		return new Shuttling(Shuttling::DIR_UP, qubit_indices.front(), line_number);
-	} else if (operation->getType() == "shuttle_down") {
+	} else if (gate_type == "shuttle_down") {
 		return new Shuttling(Shuttling::DIR_DOWN, qubit_indices.front(), line_number);
-	} else if (operation->getType() == "shuttle_left") {
+	} else if (gate_type == "shuttle_left") {
 		return new Shuttling(Shuttling::DIR_LEFT, qubit_indices.front(), line_number);
-	} else if (operation->getType() == "shuttle_right") {
+	} else if (gate_type == "shuttle_right") {
 		return new Shuttling(Shuttling::DIR_RIGHT, qubit_indices.front(), line_number);
 	}
 	
 	// One-qubit gate: method z-gate
-	else if (operation->getType() == "z") {
+	else if (gate_type == "z") {
 		return new ZGate(qubit_indices.front(), line_number);
 	}
 	
-	// TODO: One-qubit gate: method global
+	// One-qubit gate: method global
+	else if (gate_type == "i" || gate_type == "h"
+			|| gate_type == "x" || gate_type == "y" /*|| gate_type == "z"*/
+			|| gate_type == "rx" || gate_type == "ry" || gate_type == "rz"
+			|| gate_type == "x90" || gate_type == "y90" || gate_type == "mx90"
+			|| gate_type == "my90" || gate_type == "s" || gate_type == "sdag"
+			|| gate_type == "t" || gate_type == "tdag") {
+		return new SingleGate(qubit_indices.front(), line_number);
+	}
 	
 	// Two-qubit gate: sqrt(SWAP)
-	else if (operation->getType() == "sqswap") {
+	else if (gate_type == "sqswap") {
 		return new SqSwap(qubit_indices.front(), qubit_indices.back(), line_number);
 	}
 	
 	// Measurement
-	else if (operation->getType() == "measure_x" || operation->getType() == "measure_y"
-			|| operation->getType() == "measure_z" || operation->getType() == "measure") {
+	else if (gate_type == "measure_z" || gate_type == "measure") {
 		return new Measurement(qubit_indices.front(), line_number);
 	}
 	

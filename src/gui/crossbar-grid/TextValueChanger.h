@@ -9,8 +9,6 @@
  * Value of a qubit line
  */
 class TextValueChanger : public QGraphicsTextItem {
-	
-	
 public:
 	TextValueChanger(int x, int y) : QGraphicsTextItem() {
 		this->setPos(x, y);

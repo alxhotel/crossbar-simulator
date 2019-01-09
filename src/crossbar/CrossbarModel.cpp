@@ -176,6 +176,15 @@ void CrossbarModel::notify_resize_all() {
 	}
 }
 
+void CrossbarModel::toggle_wave(bool is_even_column) {
+	if (this->active_wave == 0) {
+		this->active_wave = (is_even_column) ? 2 : 1;
+	} else {
+		this->active_wave = 0;
+	}
+	this->notify_all();
+}
+
 void CrossbarModel::toggle_h_line(int i) {
 	this->h_lines[i]->toggle();
 	std::cout << "RL[" << std::to_string(i) << "] new value = "
@@ -279,7 +288,7 @@ void CrossbarModel::move_qubit(int q_id, int i_dest, int j_dest) {
 /**
  * Apply a difference in QL voltage, where VL(origin) < VL (destination)
  */
-void CrossbarModel::apply_diff_ql(int origin_i, int origin_j, int dest_i, int dest_j) {
+void CrossbarModel::apply_ql(int origin_i, int origin_j, int dest_i, int dest_j, int flag) {
 	// Depends on the shuttling
 	std::map<int, double> changed_d_lines = {};
 	if (origin_j == dest_j) {
@@ -295,18 +304,17 @@ void CrossbarModel::apply_diff_ql(int origin_i, int origin_j, int dest_i, int de
 		
 		double default_value = 0;
 		for (int j = 0; j < this->n; j++) {
-			// TODO: remove this condition
-			if (!this->positions_qubits[top_i][j].empty()
+			/*if (!this->positions_qubits[top_i][j].empty()
 					&& !this->positions_qubits[bottom_i][j].empty()) {
 				throw std::runtime_error("There are two qubits in the same column " + std::to_string(j) + " while shuttling");
-			}
+			}*/
 			
 			// Use default value
 			this->d_lines[j - top_i ]->set_value(default_value);
 			
 			// Inverse strategy for the shuttling case
 			int shuttling_flag = 1;
-			if (j == origin_j) shuttling_flag = -1;
+			if (j == origin_j) shuttling_flag = flag;
 			
 			if (!this->positions_qubits[top_i][j].empty()) {
 				// Right occupied
@@ -338,10 +346,10 @@ void CrossbarModel::apply_diff_ql(int origin_i, int origin_j, int dest_i, int de
 		
 		int default_value = 0;
 		for (int i = 0; i < this->m; i++) {
-			if (!this->positions_qubits[i][left_j].empty()
+			/*if (!this->positions_qubits[i][left_j].empty()
 					&& !this->positions_qubits[i][right_j].empty()) {
 				throw std::runtime_error("There are two qubits in the same row " + std::to_string(i) + " while shuttling");
-			}
+			}*/
 			
 			// Use default value
 			this->d_lines[right_j - i]->set_value(default_value);
@@ -382,6 +390,18 @@ void CrossbarModel::apply_diff_ql(int origin_i, int origin_j, int dest_i, int de
 	}
 }
 
+void CrossbarModel::apply_diff_ql(int origin_i, int origin_j, int dest_i, int dest_j) {
+	this->apply_ql(origin_i, origin_j, dest_i, dest_j, -1);
+}
+
+void CrossbarModel::apply_eq_ql(int origin_i, int origin_j, int dest_i, int dest_j) {
+	this->apply_ql(origin_i, origin_j, dest_i, dest_j, 0);
+}
+
+int CrossbarModel::get_active_wave() {
+	return this->active_wave;
+}
+
 Qubit* CrossbarModel::get_qubit(int q_id) {
 	if (this->qubits.find(q_id) == this->qubits.end()) return NULL;
 	else return this->qubits[q_id];
@@ -398,6 +418,7 @@ std::set<int> CrossbarModel::get_qubits(int i, int j) {
 			&& this->positions_qubits[i].find(j) != this->positions_qubits[i].end()) {
 		return this->positions_qubits[i][j];
 	} else {
+		std::cout << i << " " << j << std::endl << std::flush;
 		throw std::runtime_error("Invalid coordinates");
 	}
 }
@@ -410,6 +431,9 @@ std::map<int, Qubit*> CrossbarModel::iter_qubits_positions() {
  * Reset the crossbar to its original state (same number of qubits and size)
  */
 void CrossbarModel::reset() {
+	// Reset wave line
+	this->active_wave = 0;
+	
 	// Reset control lines
 	for (int i = 0; i <= m - 2; i++) this->h_lines[i]->set_value(0);
 	for (int j = 0; j <= n - 2; j++) this->v_lines[j]->set_value(0);
@@ -448,6 +472,9 @@ void CrossbarModel::resize(int num_qubits) {
 	this->n = dim;
 	this->num_qubits = num_qubits;
 	
+	// Wave
+	this->active_wave = 0;
+	
 	// Create horizontal, vertical & diagonal control lines;
 	this->h_lines.clear();
 	for (int i = 0; i <= this->m - 2; i++) this->h_lines[i] = new BarrierLine(0);
@@ -468,7 +495,11 @@ void CrossbarModel::resize(int num_qubits) {
 			if ((i + j) % 2 == 0) {
 				// Fill until we finish with all qubits 
 				if (q_id < this->num_qubits) {
-					this->qubits[q_id] = new Qubit(new QubitState(1, 0), new QubitPosition(i, j), false);
+					this->qubits[q_id] = new Qubit(
+						(j % 2 == 0) ? new QubitState(0, 1) : new QubitState(1, 0),
+						new QubitPosition(i, j),
+						(i % 2 != 0)
+					);
 					this->positions_qubits[i][j] = {q_id};
 					q_id++;
 				}

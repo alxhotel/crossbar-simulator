@@ -51,7 +51,12 @@ public:
 	void check_valid_configuration();
 	void evolve();
 	void move_qubit(int q_id, int i_dest, int j_dest);
+	void apply_ql(int origin_i, int origin_j, int dest_i, int dest_j, int flag);
 	void apply_diff_ql(int origin_i, int origin_j, int dest_i, int dest_j);
+	void apply_eq_ql(int origin_i, int origin_j, int dest_i, int dest_j);
+	void toggle_wave(bool is_even_column);
+	
+	int get_active_wave();
 	
 	void reset();
 	void resize(int num_qubits);
@@ -72,6 +77,9 @@ private:
 	int m;
 	int n;
 	int num_qubits;
+	
+	// Wave (0: inactive, 1: odd, 2: even)
+	int active_wave;
 
 	// Control lines
 	std::map<int, BarrierLine*> h_lines;

@@ -27,6 +27,42 @@ CrossbarGrid::CrossbarGrid(QWidget* parent, CrossbarModel* model) : QGraphicsVie
 }
 
 /**
+ * Draw the active wave
+ * @param active wave
+ * @return map of the active wave lines
+ */
+std::map<int, QGraphicsRectItem*> CrossbarGrid::draw_wave_items(int active_wave, int num_columns) {
+	std::map<int, QGraphicsRectItem*> wave_items;
+		
+	for (int j = 0; j < num_columns; j++) {
+		int x = CrossbarGrid::OUTER_MARGIN + j * CrossbarGrid::SQUARE_WIDTH + CrossbarGrid::SQUARE_WIDTH / 2;
+		int y = CrossbarGrid::OUTER_MARGIN;
+		int w = CrossbarGrid::SQUARE_WIDTH;
+		int h = this->height - 2 * CrossbarGrid::OUTER_MARGIN;
+
+		// Draw rectangle
+		QGraphicsRectItem* rect = new QGraphicsRectItem(x, y, w, h);
+		rect->setPen(QPen(Qt::white));
+		QBrush brush;
+		if (active_wave == 2 && j % 2 == 0) {
+			// Red
+			brush = QBrush(Qt::red);
+		} else if (active_wave == 1 && j % 2 == 1) {
+			// Blue
+			brush = QBrush(Qt::blue);
+		} else {
+			// White
+			brush = QBrush(Qt::white);
+		}
+		rect->setBrush(brush);
+		this->scene->addItem(rect);
+		wave_items[j] = rect;
+	}
+	
+	return wave_items;
+}
+
+/**
  * Draw the horizontal lines
  * @param count
  * @return map of the horizontal lines
@@ -43,7 +79,8 @@ std::map<int, QGraphicsLineItem*> CrossbarGrid::draw_h_lines(int count) {
 
 		// Draw line
 		QGraphicsLineItem* line = new QGraphicsLineItem(x1, y1, x2, y2);
-		line->setPen(CrossbarGrid::BLUE_PEN);
+		QPen pen = (this->model->is_h_barrier_down(key)) ? CrossbarGrid::BLUE_PEN_DASHED : CrossbarGrid::BLUE_PEN;
+		line->setPen(pen);
 		this->scene->addItem(line);
 
 		// Add button only for the real control lines
@@ -76,7 +113,8 @@ std::map<int, QGraphicsLineItem*> CrossbarGrid::draw_v_lines(int count) {
 
 		// Draw line
 		QGraphicsLineItem* line = new QGraphicsLineItem(x1, y1, x2, y2);
-		line->setPen(CrossbarGrid::RED_PEN);
+		QPen pen = (this->model->is_v_barrier_down(key)) ? CrossbarGrid::RED_PEN_DASHED : CrossbarGrid::RED_PEN;
+		line->setPen(pen);
 		this->scene->addItem(line);
 
 		// Add button only for the real control lines
@@ -125,6 +163,7 @@ std::map<int, TextValueChanger*> CrossbarGrid::draw_d_lines(int count) {
 
 		// Draw text value
 		value_items[key] = value_changer;
+		value_changer->setPlainText(QString::number(this->model->d_line_value(key), 'd', 1));
 		value_changer->set_callback(key, this->model, &CrossbarModel::change_d_line);
 		this->scene->addItem(value_changer);
 		i++;
@@ -137,11 +176,12 @@ std::map<int, QubitCircle*> CrossbarGrid::draw_qubits() {
 	std::map<int, QubitCircle*> qubit_items;
 	for (auto const &entry : this->model->iter_qubits_positions()) {
 		int q_id = entry.first;
-		QubitPosition* pos = entry.second->get_position();
+		Qubit* qubit = entry.second;
+		QubitPosition* pos = qubit->get_position();
 		
 		int y = CrossbarGrid::OUTER_MARGIN + (this->m - pos->get_i()) * CrossbarGrid::SQUARE_WIDTH;
 		int x = CrossbarGrid::OUTER_MARGIN + (pos->get_j() + 1) * CrossbarGrid::SQUARE_WIDTH;
-		qubit_items[q_id] = new QubitCircle(q_id);
+		qubit_items[q_id] = new QubitCircle(q_id, qubit->get_is_ancillary());
 		qubit_items[q_id]->setPos(x, y);
 		
 		this->scene->addItem(qubit_items[q_id]);
@@ -154,6 +194,19 @@ std::map<int, QubitCircle*> CrossbarGrid::draw_qubits() {
  * Handle the changes in the model
  */
 void CrossbarGrid::notified() {	
+	// Repaint active wave
+	std::map<int, QGraphicsRectItem*>::iterator it_wave;
+	for (it_wave = this->wave_items.begin(); it_wave != this->wave_items.end(); it_wave++) {
+		QBrush brush;
+		if (this->model->get_active_wave() == 2 && it_wave->first % 2 == 0) {
+			brush = QBrush(Qt::red);
+		} else if (this->model->get_active_wave() == 1 && it_wave->first % 2 == 1) {
+			brush = QBrush(Qt::blue);
+		} else {
+			brush = QBrush(Qt::white);
+		}
+		this->wave_items[it_wave->first]->setBrush(brush);
+	}
 	// Repaint horizontal lines
 	std::map<int, QGraphicsLineItem*>::iterator it_line;
 	for (it_line = this->h_line_items.begin(); it_line != this->h_line_items.end(); it_line++) {
@@ -185,7 +238,7 @@ void CrossbarGrid::notified() {
 	QCoreApplication::processEvents();
 }
 
-void CrossbarGrid::notified_resize() {	
+void CrossbarGrid::notified_resize() {
 	// Set size of view
 	int h_count, v_count, d_count;
 	std::tie(this->m, this->n) = this->model->get_dimensions();
@@ -196,6 +249,10 @@ void CrossbarGrid::notified_resize() {
 
 	// Clear scene
 	this->scene->clear();
+	
+	// Wave
+	this->wave_items.clear();
+	this->wave_items = this->draw_wave_items(this->model->get_active_wave(), this->n);
 	
 	// Control lines
 	this->h_line_items.clear();

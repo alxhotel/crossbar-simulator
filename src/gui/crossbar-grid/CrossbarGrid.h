@@ -8,6 +8,7 @@
 #include <QGraphicsView>
 #include <QGraphicsScene>
 #include <QGraphicsLineItem>
+#include <QGraphicsRectItem>
 #include "LineTogglerCircle.h"
 #include "QubitCircle.h"
 #include "TextValueChanger.h"
@@ -48,6 +49,9 @@ private:
 	int m, n;
 	int height, width;
 	
+	// Active wave
+	std::map<int, QGraphicsRectItem*> wave_items;
+	
 	// Control lines
 	std::map<int, QGraphicsLineItem*> h_line_items;
 	std::map<int, QGraphicsLineItem*> v_line_items;
@@ -57,6 +61,7 @@ private:
 	std::map<int, QubitCircle*> qubit_items;
 	
 	// Draw methods
+	std::map<int, QGraphicsRectItem*> draw_wave_items(int active_wave, int num_columns);
 	std::map<int, QGraphicsLineItem*> draw_h_lines(int count);
 	std::map<int, QGraphicsLineItem*> draw_v_lines(int count);
 	std::map<int, TextValueChanger*> draw_d_lines(int count);

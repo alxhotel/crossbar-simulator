@@ -79,7 +79,38 @@ void SqSwap::add_dynamic_constraints(CrossbarModel* model) {
 }
 
 void SqSwap::execute(CrossbarModel* model, bool with_animation, int speed) {
-
-	// TODO
+	// Qubit info
+	Qubit* qubit_a = model->get_qubit(this->qubit_a_id);
+	Qubit* qubit_b = model->get_qubit(this->qubit_b_id);
+	QubitPosition* pos_a = qubit_a->get_position();
+	QubitPosition* pos_b = qubit_b->get_position();
 	
+	int origin_a_i = pos_a->get_i();
+	int origin_a_j = pos_a->get_j();
+	int origin_b_i = pos_b->get_i();
+	int origin_b_j = pos_b->get_j();
+	
+	int origin_top_i, origin_bottom_i;
+	if (origin_b_i < origin_a_i) {
+		origin_top_i = origin_a_i;
+		origin_bottom_i = origin_b_i;
+	} else {
+		origin_top_i = origin_b_i;
+		origin_bottom_i = origin_a_i;
+	}
+	
+	double waiting_seconds = this->get_waiting_seconds(speed);
+
+	// Vertical barrier down
+	model->toggle_h_line(origin_bottom_i);
+	if (with_animation) this->wait(waiting_seconds);
+
+	// Apply difference in QL voltages
+	model->apply_eq_ql(origin_a_i, origin_a_j, origin_b_i, origin_b_j);
+	model->evolve();
+	if (with_animation) this->wait(waiting_seconds);
+
+	// Vertical barrier up
+	model->toggle_h_line(origin_bottom_i);
+	if (with_animation) this->wait(waiting_seconds);
 }
