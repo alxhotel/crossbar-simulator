@@ -19,8 +19,15 @@ endif()
 # Libraries
 include_directories(${CMAKE_SOURCE_DIR}/libs/libqasm/qasm_flex_bison/library)
 add_subdirectory(${CMAKE_SOURCE_DIR}/libs/libqasm/qasm_flex_bison/library)
+
 include_directories(${CMAKE_SOURCE_DIR}/libs/naxos/core)
 add_subdirectory(${CMAKE_SOURCE_DIR}/libs/naxos/core)
+
+include_directories(${CMAKE_SOURCE_DIR}/libs/json/include)
+#add_subdirectory(${CMAKE_SOURCE_DIR}/libs/json)
+
+include_directories(${CMAKE_SOURCE_DIR}/libs/intervals)
+#add_subdirectory(${CMAKE_SOURCE_DIR}/libs/intervals)
 
 # Source files
 add_subdirectory(

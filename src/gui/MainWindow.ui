@@ -63,13 +63,6 @@
            </widget>
           </item>
           <item>
-           <widget class="QPushButton" name="qubitInfoButton">
-            <property name="text">
-             <string>Qubit Info</string>
-            </property>
-           </widget>
-          </item>
-          <item>
            <widget class="Line" name="line">
             <property name="orientation">
              <enum>Qt::Horizontal</enum>
@@ -137,6 +130,7 @@
     <property name="title">
      <string>File</string>
     </property>
+    <addaction name="actionNew"/>
     <addaction name="actionOpen"/>
     <addaction name="actionSettings"/>
     <addaction name="actionExit"/>
@@ -157,6 +151,11 @@
   <action name="actionOpen">
    <property name="text">
     <string>Open...</string>
+   </property>
+  </action>
+  <action name="actionNew">
+   <property name="text">
+    <string>New</string>
    </property>
   </action>
  </widget>

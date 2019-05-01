@@ -1,5 +1,10 @@
 #include "CQASMParser.h"
 
+/**
+ * Parses a cQASM program.
+ * @param text
+ * @return 
+ */
 std::vector<std::vector<Operation*> > CQASMParser::parse(std::string text) {
 	// Parse code
 	compiler::QasmSemanticChecker* sm = new compiler::QasmSemanticChecker(text.c_str());
@@ -13,11 +18,6 @@ std::vector<std::vector<Operation*> > CQASMParser::parse(std::string text) {
 	std::vector<compiler::SubCircuit> subcircuits = qasm_rep.getSubCircuits().getAllSubCircuits();
 	for (compiler::SubCircuit subcircuit : subcircuits) {
 		for (compiler::OperationsCluster* operation_cluster : subcircuit.getOperationsCluster()) {
-			// TODD: remove for parallel operations
-			if (operation_cluster->isParallel()) {
-				throw std::runtime_error("Parallel operations are not supported");
-			}
-
 			std::vector<Operation*> p_operations = {};
 			// for parallel operations
 			for (compiler::Operation* compiler_operation : operation_cluster->getOperations()) {
@@ -34,6 +34,11 @@ std::vector<std::vector<Operation*> > CQASMParser::parse(std::string text) {
 	return operations;
 }
 
+/**
+ * Parses cQASM text and returns the number of qubits.
+ * @param text
+ * @return 
+ */
 int CQASMParser::get_num_qubits(std::string text) {
 	// Parse code
 	compiler::QasmSemanticChecker* sm = new compiler::QasmSemanticChecker(text.c_str());
@@ -48,16 +53,29 @@ int CQASMParser::get_num_qubits(std::string text) {
 	return num_qubits;
 }
 
+/**
+ * Translates from operations in "libqasm" to operations in the simulator.
+ * @param operation
+ * @param line_number
+ * @return 
+ */
 Operation* CQASMParser::translate_operation(compiler::Operation* operation, int line_number) {
+	// Make comparison case insensitive
+	std::string gate_type = operation->getType();
+	std::transform(gate_type.begin(), gate_type.end(),gate_type.begin(), ::tolower);
+
+	//std::vector<long unsigned int> qubit_indices;
 	std::vector<long unsigned int> qubit_indices = operation->getQubitsInvolved().getSelectedQubits().getIndices();
 	if (qubit_indices.size() == 0) {
-		qubit_indices.push_back(operation->getTwoQubitPairs().first.getSelectedQubits().getIndices()[0]);
-		qubit_indices.push_back(operation->getTwoQubitPairs().second.getSelectedQubits().getIndices()[0]);
+		std::vector<size_t> first_qubit = operation->getTwoQubitPairs().first.getSelectedQubits().getIndices();
+		std::vector<size_t> second_qubit = operation->getTwoQubitPairs().second.getSelectedQubits().getIndices();
+		if (first_qubit.size() > 0) {
+			qubit_indices.push_back(first_qubit[0]);
+		}
+		if (second_qubit.size() > 0) {
+			qubit_indices.push_back(second_qubit[0]);
+		}
 	}
-	
-	// Make comparision case insensitive
-	std::string gate_type = operation->getType();
-	std::transform (gate_type.begin(), gate_type.end(),gate_type.begin(), ::tolower);
 	
 	// Shuttling
 	if (gate_type == "shuttle_up") {
@@ -71,32 +89,50 @@ Operation* CQASMParser::translate_operation(compiler::Operation* operation, int 
 	}
 	
 	// One-qubit gate: method z-gate
-	else if (gate_type == "z") {
-		return new ZGate(qubit_indices.front(), line_number);
+	else if (gate_type == "z_shuttle_left") {
+		return new ShuttleGate(ShuttleGate::DIR_LEFT, qubit_indices.front(), line_number);
+	} else if (gate_type == "z_shuttle_right") {
+		return new ShuttleGate(ShuttleGate::DIR_RIGHT, qubit_indices.front(), line_number);
 	}
 	
 	// One-qubit gate: method global
-	else if (gate_type == "i" || gate_type == "h"
-			|| gate_type == "x" || gate_type == "y" /*|| gate_type == "z"*/
+	else if (gate_type == "prep_x" || gate_type == "prep_y" || gate_type == "prep_z"
+			|| gate_type == "i" || gate_type == "h"
+			|| gate_type == "x" || gate_type == "y" || gate_type == "z"
 			|| gate_type == "rx" || gate_type == "ry" || gate_type == "rz"
 			|| gate_type == "x90" || gate_type == "y90" || gate_type == "mx90"
 			|| gate_type == "my90" || gate_type == "s" || gate_type == "sdag"
 			|| gate_type == "t" || gate_type == "tdag") {
-		return new SingleGate(qubit_indices.front(), line_number);
+		
+		// TODO: add multiple direction
+		return new SingleGate(gate_type, SingleGate::DIR_LEFT, qubit_indices.front(), line_number);
 	}
 	
 	// Two-qubit gate: sqrt(SWAP)
 	else if (gate_type == "sqswap") {
 		return new SqSwap(qubit_indices.front(), qubit_indices.back(), line_number);
+	} else if (gate_type == "cphase") {
+		return new CPhase(qubit_indices.front(), qubit_indices.back(), line_number);
 	}
 	
 	// Measurement
-	else if (gate_type == "measure_z" || gate_type == "measure") {
-		return new Measurement(qubit_indices.front(), line_number);
+	else if (gate_type == "measure_left_up") {
+		return new Measurement(Measurement::DIR_ANCILLA_LEFT, Measurement::DIR_SITE_UP, qubit_indices.front(), line_number);
+	} else if (gate_type == "measure_left_down") {
+		return new Measurement(Measurement::DIR_ANCILLA_LEFT, Measurement::DIR_SITE_DOWN, qubit_indices.front(), line_number);
+	} else if (gate_type == "measure_right_up") {
+		return new Measurement(Measurement::DIR_ANCILLA_RIGHT, Measurement::DIR_SITE_UP, qubit_indices.front(), line_number);
+	} else if (gate_type == "measure_right_down") {
+		return new Measurement(Measurement::DIR_ANCILLA_RIGHT, Measurement::DIR_SITE_DOWN, qubit_indices.front(), line_number);
+	}
+	
+	// Wait operation
+	else if (gate_type == "wait") {
+		return new Wait(operation->getWaitTime(), line_number);
 	}
 	
 	// Error
 	else {
-		throw std::runtime_error("Gate not supported");
+		throw std::runtime_error("Gate not supported at line " + line_number);
 	}
 }

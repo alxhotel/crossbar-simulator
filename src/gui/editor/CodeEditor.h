@@ -1,6 +1,8 @@
 #ifndef CODEEDITOR_H
 #define CODEEDITOR_H
 
+#include <iostream>
+
 #include <QString>
 #include <QTextStream>
 #include <QPainter>
@@ -19,6 +21,9 @@ public:
 	std::string getText();
 	
 	void setHighlightGray(int line_number);
+	void setHighlightRed(int line_number);
+	void setHighlightColor(QColor color, int line_number);
+	void clearManualSelections();
 
 protected:
 	void resizeEvent(QResizeEvent *event);

@@ -26,6 +26,15 @@ public:
 	void notified_resize();
 	
 	void resize();
+	void setModel(CrossbarModel* model);
+
+signals:
+	void notified_signal();
+	void notified_resize_signal();
+	
+public slots:
+	void notified_slot();
+	void notified_resize_slot();
 	
 private:
 	// Constants

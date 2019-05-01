@@ -1,23 +1,37 @@
 #include "BarrierLine.h"
 
-BarrierLine::BarrierLine(double value) {
-	this->value = value;
+BarrierLine::BarrierLine(int mode, double state) {
+	this->mode = mode;
+	this->state = state;
 }
 
-double BarrierLine::get_value() const {
-	return this->value;
+BarrierLine::BarrierLine(double state) {
+	this->mode = MODE::BARRIER;
+	this->state = state;
 }
 
-void BarrierLine::set_value(double value) {
-	this->value = value;
+int BarrierLine::get_mode() const {
+	return this->mode;
+}
+
+void BarrierLine::set_mode(int mode) {
+	this->mode = mode;
+}
+
+double BarrierLine::get_state() const {
+	return this->state;
+}
+
+void BarrierLine::set_state(double state) {
+	this->state = state;
 }
 
 bool BarrierLine::is_up() const {
-	return (this->get_value() == 0);
+	return (this->get_state() == STATE::RAISED);
 }
 
 bool BarrierLine::is_down() const {
-	return (this->get_value() == 1);
+	return (this->get_state() == STATE::LOWERED);
 }
 
 bool BarrierLine::is_open() const {
@@ -29,13 +43,14 @@ bool BarrierLine::is_closed() const {
 }
 
 void BarrierLine::open() {
-	this->set_value(1);
+	this->set_state(STATE::LOWERED);
 }
 
 void BarrierLine::close() {
-	this->set_value(0);
+	this->set_state(STATE::RAISED);
 }
 
 void BarrierLine::toggle() {
-	this->set_value(1 - this->get_value());
+	if (this->get_state() == STATE::RAISED) this->set_state(STATE::LOWERED);
+	else this->set_state(STATE::RAISED);
 }

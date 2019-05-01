@@ -8,6 +8,8 @@ set(SOURCES
 
 	# GUI: Main
 	gui/MainWindow.h gui/MainWindow.cpp
+	gui/SetupWindow.h gui/SetupWindow.cpp
+	gui/Executor.h gui/Executor.cpp
 	# GUI: CodeEditor
 	gui/editor/CodeEditor.h gui/editor/CodeEditor.cpp
 	# GUI: CrossbarGrid
@@ -31,12 +33,12 @@ set(SOURCES
 	# Crossbar: operations
 	crossbar/operations/Operation.h
 	crossbar/operations/Shuttling.h crossbar/operations/Shuttling.cpp
-	crossbar/operations/ZGate.h crossbar/operations/ZGate.cpp
+	crossbar/operations/ShuttleGate.h crossbar/operations/ShuttleGate.cpp
 	crossbar/operations/SingleGate.h crossbar/operations/SingleGate.cpp
 	crossbar/operations/SqSwap.h crossbar/operations/SqSwap.cpp
+	crossbar/operations/CPhase.h crossbar/operations/CPhase.cpp
 	crossbar/operations/Measurement.h crossbar/operations/Measurement.cpp
-	# Crossbat: Routing
-	crossbar/CrossbarRouter.h crossbar/CrossbarRouter.cpp
+	crossbar/operations/Wait.h crossbar/operations/Wait.cpp
 	# Crossbar: constraint checker
 	crossbar/ConstraintChecker.h crossbar/ConstraintChecker.cpp
 	# Crossbar: utils
@@ -48,6 +50,7 @@ set(SOURCES
 
 set (UIS
 	gui/MainWindow.ui
+	gui/SetupWindow.ui
 	gui/modals/QubitInfo.ui
 	gui/modals/Settings.ui
 )

@@ -48,10 +48,9 @@ void CodeEditor::highlightCurrentLine() {
 	QList<QTextEdit::ExtraSelection> extraSelections;
 
 	if (!isReadOnly()) {
-		QTextEdit::ExtraSelection selection;
-
 		QColor lineColor = QColor(Qt::yellow).lighter(160);
 
+		QTextEdit::ExtraSelection selection;
 		selection.format.setBackground(lineColor);
 		selection.format.setProperty(QTextFormat::FullWidthSelection, true);
 		selection.cursor = textCursor();
@@ -62,28 +61,39 @@ void CodeEditor::highlightCurrentLine() {
 	setExtraSelections(extraSelections);
 }
 
-void CodeEditor::setHighlightGray(int line_number) {
+void CodeEditor::setHighlightGray(int lineNumber) {
+	this->setHighlightColor(QColor(Qt::darkGray).lighter(180), lineNumber);
+}
+
+void CodeEditor::setHighlightRed(int lineNumber) {
+	this->setHighlightColor(QColor(Qt::red).lighter(180), lineNumber);
+}
+
+void CodeEditor::setHighlightColor(QColor lineColor, int lineNumber) {
 	QList<QTextEdit::ExtraSelection> extraSelections;
 
-	// TODO
 	if (!isReadOnly()) {
 		QTextEdit::ExtraSelection selection;
-		
-		QColor lineColor = QColor(Qt::gray).lighter(160);
 		selection.format.setBackground(lineColor);
 		selection.format.setProperty(QTextFormat::FullWidthSelection, true);
-		selection.cursor = textCursor();
-        selection.cursor.clearSelection();
-        /*sel.cursor.setPosition(error.startPos);
-        sel.cursor.movePosition(QTextCursor::NextCharacter, QTextCursor::KeepAnchor, error.endPos - error.startPos);
-        sel.cursor.mergeCharFormat(sel.format);
-		extraSelections.append(selection);*/
+        
+		// Select the whole line [0 .. N - 1]
+		QTextBlock block = this->document()->findBlockByLineNumber(lineNumber - 1);
+		QTextCursor cursor(this->document());
+		cursor.setPosition(block.position());
+		selection.cursor = cursor;
+		
+		extraSelections.append(selection);
 	}
 
 	setExtraSelections(extraSelections);
 }
 
-// TODO: add error highlighting
+void CodeEditor::clearManualSelections() {
+	QList<QTextEdit::ExtraSelection> extraSelections;
+	setExtraSelections(extraSelections);
+	this->highlightCurrentLine();
+}
 
 void CodeEditor::lineNumberAreaPaintEvent(QPaintEvent *event) {
 	QPainter painter(this->lineNumberArea);

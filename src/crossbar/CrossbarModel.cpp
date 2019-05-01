@@ -4,52 +4,61 @@
 #include <stdexcept>
 #include "CrossbarModel.h"
 
-CrossbarModel::CrossbarModel(int num_qubits) {	
+CrossbarModel::CrossbarModel(int m, int n, int data_qubits, int ancilla_qubits) {	
 	// Set the subscribers
 	this->subscribers = {};
 	
 	// Init crossbar by using aux method
-	this->resize(num_qubits);
+	this->resize(m, n, data_qubits, ancilla_qubits);
+}
+
+CrossbarModel::CrossbarModel(int size, int data_qubits, int ancilla_qubits) {	
+	CrossbarModel(size, size, data_qubits, ancilla_qubits);
 }
 
 CrossbarModel::~CrossbarModel() {
+	// Remove all subscribers
+	this->unsubscribeAll();
+	// Delete pointers
 	delete this->pm;
 }
 
 CrossbarModel* CrossbarModel::clone() {
-	CrossbarModel* cloned_model = new CrossbarModel(this->num_qubits);
+	CrossbarModel* cloned_model = new CrossbarModel(this->m, this->n, 0, 0);
 	
 	for (auto const &barrier : this->h_lines) {
-		cloned_model->h_lines[barrier.first]->set_value(barrier.second->get_value());
+		cloned_model->h_lines[barrier.first]->set_state(barrier.second->get_state());
 	}
 	for (auto const &barrier : this->v_lines) {
-		cloned_model->v_lines[barrier.first]->set_value(barrier.second->get_value());
+		cloned_model->v_lines[barrier.first]->set_state(barrier.second->get_state());
 	}
 	for (auto const &ql_line : this->d_lines) {
 		cloned_model->d_lines[ql_line.first]->set_value(ql_line.second->get_value());
 	}
 	
-	//std::map<int, std::map<int, int> cloned_model->positions_qubits(this->positions_qubits);
-	//std::map<int, Qubit*> cloned_model->qubits(this->qubits);
-	
-	for (auto const &qubit : this->qubits) {
-		QubitPosition* pos = qubit.second->get_position();
-		cloned_model->move_qubit(qubit.first, pos->get_i(), pos->get_j());
+	for (auto const &entry : this->qubits) {
+		int q_id = entry.first;
+		Qubit* qubit = entry.second;
+		cloned_model->add_qubit(q_id, new Qubit(
+			new QubitState(qubit->get_state()->get_alpha().real(), qubit->get_state()->get_beta().real()),
+			new QubitPosition(qubit->get_position()->get_i(), qubit->get_position()->get_j()),
+			qubit->get_is_ancillary()
+		));
 	}
 	
-	// TODO: ancillary qubits
 	//std::vector<Subscriber*> cloned_model->subscribers(this->subscribers);
+	
+	cloned_model->init_constraints();
 	
 	return cloned_model;
 }
 
 void CrossbarModel::init_constraints() {
-	// TODO: fix this commented line
-	//if (this->pm != NULL) delete this->pm;
+	if (this->pm != NULL) delete this->pm;
 	this->pm = new naxos::NsProblemManager();
 }
 
-void CrossbarModel::add_static_constraints() {
+void CrossbarModel::add_constraints() {
 	// Init constraints
 	this->init_constraints();
 	
@@ -69,12 +78,24 @@ void CrossbarModel::add_static_constraints() {
 	for (int i = 0; i < m; ++i) {
 		this->position_qubits_constraint[i] = {};
 		for (int j = 0; j < n; ++j) {
-			this->position_qubits_constraint[i][j] = new naxos::NsIntVar(*this->pm, 0, 2);
+			/*this->position_qubits_constraint[i][j] = new naxos::NsIntVar(*this->pm, 0, 2);
 			this->pm->add(
 				*this->position_qubits_constraint[i][j] == this->positions_qubits[i][j].size()
-			);
+			);*/
+			this->position_qubits_constraint[i][j] = new naxos::NsIntVar(*this->pm, 0, 1000);
 		}
 	}
+	
+	this->wave_constraint = new naxos::NsIntVar(*this->pm, 0, 5 * 1000 * 1000);
+	this->wave_column_constraint = new naxos::NsIntVar(*this->pm, 0, 1);
+}
+
+int CrossbarModel::get_data_qubits() {
+	return this->data_qubits;
+}
+
+int CrossbarModel::get_ancilla_qubits() {
+	return this->ancilla_qubits;
 }
 
 naxos::NsProblemManager* CrossbarModel::get_problem_manager() {
@@ -99,6 +120,32 @@ std::map<int, std::map<int, naxos::NsIntVar*> > CrossbarModel::get_position_qubi
 
 naxos::NsIntVar* CrossbarModel::get_position_qubits_constraint(int i, int j) {
 	return this->position_qubits_constraint[i][j];
+}
+
+naxos::NsIntVar* CrossbarModel::get_wave_constraint() {
+	return this->wave_constraint;
+}
+
+naxos::NsIntVar* CrossbarModel::get_wave_column_constraint() {
+	return this->wave_column_constraint;
+}
+
+void CrossbarModel::save_constraint_solution() {
+	backup_h_lines_constraint.insert(h_lines_constraint.begin(), h_lines_constraint.end());
+	backup_v_lines_constraint.insert(v_lines_constraint.begin(), v_lines_constraint.end());
+	backup_d_lines_constraint.insert(d_lines_constraint.begin(), d_lines_constraint.end());
+	backup_position_qubits_constraint.insert(position_qubits_constraint.begin(), position_qubits_constraint.end());
+	backup_wave_constraint = wave_constraint;
+	backup_wave_column_constraint = wave_column_constraint;
+}
+
+void CrossbarModel::restore_constraint_solution() {
+	h_lines_constraint.insert(backup_h_lines_constraint.begin(), backup_h_lines_constraint.end());
+	v_lines_constraint.insert(backup_v_lines_constraint.begin(), backup_v_lines_constraint.end());
+	d_lines_constraint.insert(backup_d_lines_constraint.begin(), backup_d_lines_constraint.end());
+	position_qubits_constraint.insert(backup_position_qubits_constraint.begin(), backup_position_qubits_constraint.end());
+	wave_constraint = backup_wave_constraint;
+	wave_column_constraint = backup_wave_column_constraint;
 }
 
 /**
@@ -145,7 +192,7 @@ bool CrossbarModel::is_v_barrier_down(int i) {
 	return this->v_lines[i]->is_down();
 }
 
-float CrossbarModel::d_line_value(int i) {
+float CrossbarModel::get_d_line(int i) {
 	return this->d_lines[i]->get_value();
 }
 
@@ -156,6 +203,13 @@ float CrossbarModel::d_line_value(int i) {
 void CrossbarModel::subscribe(Subscriber* subscriber) {
 	this->subscribers.emplace_back(subscriber);
 	subscriber->notified();
+}
+
+/**
+ * Remove all subscribers
+ */
+void CrossbarModel::unsubscribeAll() {
+	this->subscribers.clear();
 }
 
 /**
@@ -188,22 +242,50 @@ void CrossbarModel::toggle_wave(bool is_even_column) {
 void CrossbarModel::toggle_h_line(int i) {
 	this->h_lines[i]->toggle();
 	std::cout << "RL[" << std::to_string(i) << "] new value = "
-			<< std::to_string(this->h_lines[i]->get_value()).substr(0, 3) << std::endl << std::flush;
+			<< std::to_string(this->h_lines[i]->get_state()).substr(0, 3) << std::endl << std::flush;
 	this->notify_all();
 }
 
 void CrossbarModel::toggle_v_line(int i) {
 	this->v_lines[i]->toggle();
 	std::cout << "CL[" << std::to_string(i) << "] new value = "
-			<< std::to_string(this->v_lines[i]->get_value()).substr(0,3) << std::endl << std::flush;
+			<< std::to_string(this->v_lines[i]->get_state()).substr(0,3) << std::endl << std::flush;
+	this->notify_all();
+}
+
+void CrossbarModel::lower_h_line(int i) {
+	if (this->is_h_barrier_up(i)) {
+		this->toggle_h_line(i);
+	}
+}
+
+void CrossbarModel::raise_h_line(int i) {
+	if (this->is_h_barrier_down(i)) {
+		this->toggle_h_line(i);
+	}
+}
+
+void CrossbarModel::lower_v_line(int i) {
+	if (this->is_v_barrier_up(i)) {
+		this->toggle_v_line(i);
+	}
+}
+
+void CrossbarModel::raise_v_line(int i) {
+	if (this->is_v_barrier_down(i)) {
+		this->toggle_v_line(i);
+	}
+}
+
+void CrossbarModel::set_d_line(int i, int new_value) {
+	std::cout << "QL[" << std::to_string(i) <<  "] new value: " << std::to_string(new_value) << std::endl << std::flush;
+	this->d_lines[i]->set_value(new_value);
 	this->notify_all();
 }
 
 void CrossbarModel::change_d_line(int i, int (*func)(int)) {
 	int new_value = func(this->d_lines[i]->get_value());
-	std::cout << "QL[" << std::to_string(i) <<  "] new value: " << std::to_string(new_value) << std::endl << std::flush;
-	this->d_lines[i]->set_value(new_value);
-	this->notify_all();
+	this->set_d_line(i, new_value);
 }
 
 /**
@@ -235,7 +317,10 @@ void CrossbarModel::check_valid_configuration() {
 	
 }
 
-void CrossbarModel::evolve() {
+/**
+ * Run time with the actual configuration and ONLY qubits involved
+ */
+void CrossbarModel::evolve(std::vector<int> involved_qubits) {
 	// First, check any conflicts in the configuration
 	this->check_valid_configuration();
 	
@@ -252,22 +337,30 @@ void CrossbarModel::evolve() {
 		if (d_line_top_val > d_line_middle_val) {
 			// Shuttle to the top
 			if (this->is_h_barrier_down(i)) {
-				this->move_qubit(q_id, i + 1, j);
+				if (this->contains(involved_qubits, q_id)) {
+					this->move_qubit(q_id, i + 1, j);
+				}
 			}
 			// Shuttle to the left
 			if (this->is_v_barrier_down(j - 1)) {
-				this->move_qubit(q_id, i, j - 1);
+				if (this->contains(involved_qubits, q_id)) {
+					this->move_qubit(q_id, i, j - 1);
+				}
 			}
 		}
 		
 		if (d_line_bottom_val > d_line_middle_val) {
 			// Shuttle to the bottom
 			if (this->is_h_barrier_down(i - 1)) {
-				this->move_qubit(q_id, i - 1, j);
+				if (this->contains(involved_qubits, q_id)) {
+					this->move_qubit(q_id, i - 1, j);
+				}
 			}
 			// Shuttle to the right
 			if (this->is_v_barrier_down(j)) {
-				this->move_qubit(q_id, i, j + 1);
+				if (this->contains(involved_qubits, q_id)) {
+					this->move_qubit(q_id, i, j + 1);
+				}
 			}
 		}
 	}
@@ -275,8 +368,25 @@ void CrossbarModel::evolve() {
 	this->notify_all();
 }
 
+/**
+ * Run time with the actual configuration
+ */
+void CrossbarModel::evolve() {
+	// Involve all qubits
+	std::vector<int> involved_qubits;
+	for (auto const &entry : this->iter_qubits_positions()) {
+		int q_id = entry.first;
+		involved_qubits.push_back(q_id);
+	}
+	
+	this->evolve(involved_qubits);
+}
+
 void CrossbarModel::move_qubit(int q_id, int i_dest, int j_dest) {
-	// TODO: Validate params
+	if (this->qubits.find(q_id) == this->qubits.end()) return;
+	if (i_dest < 0 || i_dest > this->m - 1) return;
+	if (j_dest < 0 || j_dest > this->n - 1) return;
+	
 	QubitPosition* pos = this->qubits[q_id]->get_position();
 	this->positions_qubits[pos->get_i()][pos->get_j()].erase(q_id);
 	this->positions_qubits[i_dest][j_dest].insert(q_id);
@@ -313,8 +423,7 @@ void CrossbarModel::apply_ql(int origin_i, int origin_j, int dest_i, int dest_j,
 			this->d_lines[j - top_i ]->set_value(default_value);
 			
 			// Inverse strategy for the shuttling case
-			int shuttling_flag = 1;
-			if (j == origin_j) shuttling_flag = flag;
+			int shuttling_flag = (j == origin_j) ? flag : 1;
 			
 			if (!this->positions_qubits[top_i][j].empty()) {
 				// Right occupied
@@ -355,8 +464,7 @@ void CrossbarModel::apply_ql(int origin_i, int origin_j, int dest_i, int dest_j,
 			this->d_lines[right_j - i]->set_value(default_value);
 			
 			// Inverse strategy for the shuttling case
-			int shuttling_flag = 1;
-			if (i == origin_i) shuttling_flag = -1;
+			int shuttling_flag = (i == origin_i) ? flag : 1;
 			
 			if (!this->positions_qubits[i][right_j].empty()) {
 				// Right occupied
@@ -402,6 +510,25 @@ int CrossbarModel::get_active_wave() {
 	return this->active_wave;
 }
 
+void CrossbarModel::add_qubit(int q_id, Qubit* qubit) {
+	this->qubits[q_id] = qubit;
+	QubitPosition* pos = qubit->get_position();
+	this->positions_qubits[pos->get_i()][pos->get_j()] = {q_id};
+	if (qubit->get_is_ancillary()) {
+		this->ancilla_qubits++;
+	} else {
+		this->data_qubits++;
+	}
+}
+
+void CrossbarModel::set_positions_qubits(int i, std::map<int, std::set<int> > q_map) {
+	this->positions_qubits[i] = q_map;
+}
+
+void CrossbarModel::set_positions_qubits(int i, int j, std::set<int> q_set) {
+	this->positions_qubits[i][j] = q_set;
+}
+
 Qubit* CrossbarModel::get_qubit(int q_id) {
 	if (this->qubits.find(q_id) == this->qubits.end()) return NULL;
 	else return this->qubits[q_id];
@@ -423,6 +550,82 @@ std::set<int> CrossbarModel::get_qubits(int i, int j) {
 	}
 }
 
+std::set<int> CrossbarModel::get_qubits(int site) {
+	int j = site % this->n;
+	int i = (site - j) / this->n;
+	return this->get_qubits(i, j);
+}
+
+int CrossbarModel::get_num_qubits() {
+	return this->qubits.size();
+}
+
+void CrossbarModel::idle_configuration() {
+	int q_id = 0;
+	int m, n;
+	std::tie(m, n) = this->get_dimensions();
+	
+	int count_data = this->get_data_qubits();
+	int count_ancilla = this->get_ancilla_qubits();
+	this->data_qubits = 0;
+	this->ancilla_qubits = 0;
+	
+	for (int i = 0; i < m; ++i) {
+		this->set_positions_qubits(i, {});
+		for (int j = 0; j < n; ++j) {
+			// Fill until we finish with all qubits 
+			if (count_data > 0 || count_ancilla > 0) {
+				if ((i + j) % 2 == 0) {
+					// Idle configuration
+					this->add_qubit(q_id, new Qubit(
+						(j % 2 == 0) ? new QubitState(0, 1) : new QubitState(1, 0),
+						new QubitPosition(i, j),
+						((i % 2 != 0 && count_ancilla > 0) || (count_ancilla > 0 && count_data <= 0))
+					));
+					if ((i % 2 != 0 && count_ancilla > 0) || (count_ancilla > 0 && count_data <= 0)) count_ancilla--;
+					else count_data--;
+					q_id++;
+				} else {
+					this->set_positions_qubits(i, j, {});
+				}
+			} else {
+				this->set_positions_qubits(i, j, {});
+			}
+		}
+	}
+}
+
+void CrossbarModel::inline_configuration() {
+	int q_id = 0;
+	int m, n;
+	std::tie(m, n) = this->get_dimensions();
+	
+	int count_data = this->get_data_qubits();
+	int count_ancilla = this->get_ancilla_qubits();
+	this->data_qubits = 0;
+	this->ancilla_qubits = 0;
+	
+	for (int i = 0; i < m; ++i) {
+		this->set_positions_qubits(i, {});
+		for (int j = 0; j < n; ++j) {
+			// Fill until we finish with all qubits 
+			if (count_data > 0 || count_ancilla > 0) {
+				// In line
+				this->add_qubit(q_id, new Qubit(
+					(j % 2 == 0) ? new QubitState(0, 1) : new QubitState(1, 0),
+					new QubitPosition(i, j),
+					(count_data <= 0)
+				));
+				if (count_data <= 0) count_ancilla--;
+				else count_data--;
+				q_id++;
+			} else {
+				this->set_positions_qubits(i, j, {});
+			}
+		}
+	}
+}
+
 std::map<int, Qubit*> CrossbarModel::iter_qubits_positions() {
 	return this->qubits;
 }
@@ -431,46 +634,20 @@ std::map<int, Qubit*> CrossbarModel::iter_qubits_positions() {
  * Reset the crossbar to its original state (same number of qubits and size)
  */
 void CrossbarModel::reset() {
-	// Reset wave line
-	this->active_wave = 0;
-	
-	// Reset control lines
-	for (int i = 0; i <= m - 2; i++) this->h_lines[i]->set_value(0);
-	for (int j = 0; j <= n - 2; j++) this->v_lines[j]->set_value(0);
-	for (int k = -1 * (n - 1); k <= m; k++) this->d_lines[k]->set_value(1.0 + abs(k) % 2);
-
-	// Reset qubits & positions
-	int q_id = 0;
-	for (int i = 0; i < m; ++i) {
-		for (int j = 0; j < n; ++j) {
-			if ((i + j) % 2 == 0) {
-				this->qubits[q_id]->get_state()->reset();
-				this->qubits[q_id]->get_position()->set_i(i);
-				this->qubits[q_id]->get_position()->set_j(j);
-				this->positions_qubits[i][j].clear();
-				this->positions_qubits[i][j].insert(q_id);
-				q_id++;
-			} else {
-				this->positions_qubits[i][j].clear();
-			}
-		}
-	}
-	
-	// TODO: ancillary qubits
-	
-	this->notify_all();
+	this->resize(this->m, this->n, this->data_qubits, this->ancilla_qubits);
 }
 
 /**
  * Resets the crossbar to a new size of qubits (and maybe size)
  * @param num_qubits
  */
-void CrossbarModel::resize(int num_qubits) {
+void CrossbarModel::resize(int m, int n, int data_qubits, int ancilla_qubits) {
 	// Create a square layout for the number of qubits
-	int dim = (num_qubits % 2 == 0) ? ceil(sqrt(num_qubits * 2)) : ceil(sqrt(num_qubits * 2 - 1));
-	this->m = dim;
-	this->n = dim;
-	this->num_qubits = num_qubits;
+	this->m = m;
+	this->n = n;
+	
+	this->data_qubits = data_qubits;
+	this->ancilla_qubits = ancilla_qubits;
 	
 	// Wave
 	this->active_wave = 0;
@@ -488,25 +665,17 @@ void CrossbarModel::resize(int num_qubits) {
 	// Create qubits & positions
 	this->positions_qubits.clear();
 	this->qubits.clear();
-	int q_id = 0;
-	for (int i = 0; i < this->m; ++i) {
-		this->positions_qubits[i] = {};
-		for (int j = 0; j < this->n; ++j) {
-			if ((i + j) % 2 == 0) {
-				// Fill until we finish with all qubits 
-				if (q_id < this->num_qubits) {
-					this->qubits[q_id] = new Qubit(
-						(j % 2 == 0) ? new QubitState(0, 1) : new QubitState(1, 0),
-						new QubitPosition(i, j),
-						(i % 2 != 0)
-					);
-					this->positions_qubits[i][j] = {q_id};
-					q_id++;
-				}
-			} else {
-				this->positions_qubits[i][j] = {};
-			}
-		}
+	
+	// Position Placement
+	bool idle_configuration = (ceil((float) this->m / 2) * ceil((float) this->n / 2) >= data_qubits)
+		&& (floor(this->m / 2) * floor(this->m / 2) >= ancilla_qubits);
+	
+	if (idle_configuration) {
+		// Idle configurations
+		this->idle_configuration();
+	} else {
+		// In line
+		this->inline_configuration();
 	}
 		
 	// Init constraints
@@ -525,4 +694,8 @@ bool CrossbarModel::is_top_edge(int i) {
 
 bool CrossbarModel::is_bottom_edge(int i) {
 	return (i == 0);
+}
+
+bool CrossbarModel::contains(std::vector<int> list, int element) {
+	return std::find(list.begin(), list.end(), element) != list.end();
 }

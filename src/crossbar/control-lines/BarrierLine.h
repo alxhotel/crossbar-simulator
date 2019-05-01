@@ -3,11 +3,27 @@
 
 class BarrierLine {
 public:
-	BarrierLine(double value);
+	typedef enum {
+		BARRIER = 0,
+		RF = 1
+	} MODE;
+	
+	typedef enum {
+		RAISED = 0,
+		LOWERED = 1
+	} STATE;
+	
+	BarrierLine(int mode, double state);
+	
+	BarrierLine(double state);
 
-	double get_value() const;
+	int get_mode() const;
 
-	void set_value(double value);
+	void set_mode(int mode);
+	
+	double get_state() const;
+
+	void set_state(double state);
 
 	bool is_up() const;
 
@@ -24,7 +40,8 @@ public:
 	void toggle();
 
 private:
-	double value;
+	int mode;
+	double state;
 };
 
 #endif //CROSSBAR_SIMULATOR_BARRIERLINE_H

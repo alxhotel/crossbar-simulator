@@ -163,7 +163,7 @@ std::map<int, TextValueChanger*> CrossbarGrid::draw_d_lines(int count) {
 
 		// Draw text value
 		value_items[key] = value_changer;
-		value_changer->setPlainText(QString::number(this->model->d_line_value(key), 'd', 1));
+		value_changer->setPlainText(QString::number(this->model->get_d_line(key), 'd', 1));
 		value_changer->set_callback(key, this->model, &CrossbarModel::change_d_line);
 		this->scene->addItem(value_changer);
 		i++;
@@ -190,10 +190,25 @@ std::map<int, QubitCircle*> CrossbarGrid::draw_qubits() {
 	return qubit_items;
 }
 
+void CrossbarGrid::setModel(CrossbarModel* model) {
+	// Set new model
+	this->model = model;
+	
+	// Force resize (just in case)
+	this->notified_resize();
+	
+	// Subscribe to new model
+	this->model->subscribe(this);
+}
+
+void CrossbarGrid::notified() {
+	emit notified_signal();
+}
+
 /**
- * Handle the changes in the model
+ * Handle the changes of the model
  */
-void CrossbarGrid::notified() {	
+void CrossbarGrid::notified_slot() {
 	// Repaint active wave
 	std::map<int, QGraphicsRectItem*>::iterator it_wave;
 	for (it_wave = this->wave_items.begin(); it_wave != this->wave_items.end(); it_wave++) {
@@ -221,7 +236,7 @@ void CrossbarGrid::notified() {
 	// Repaint diagonal lines
 	std::map<int, TextValueChanger*>::iterator it_text;
 	for (it_text = this->d_text_items.begin(); it_text != this->d_text_items.end(); it_text++) {
-		this->d_text_items[it_text->first]->setPlainText(QString::number(this->model->d_line_value(it_text->first), 'd', 1));
+		this->d_text_items[it_text->first]->setPlainText(QString::number(this->model->get_d_line(it_text->first), 'd', 1));
 	}
 	// Repaint the qubits
 	for (auto const &entry : this->model->iter_qubits_positions()) {
@@ -239,6 +254,13 @@ void CrossbarGrid::notified() {
 }
 
 void CrossbarGrid::notified_resize() {
+	emit notified_resize_signal();
+}
+
+/**
+ * Handle the resize of the model
+ */
+void CrossbarGrid::notified_resize_slot() {
 	// Set size of view
 	int h_count, v_count, d_count;
 	std::tie(this->m, this->n) = this->model->get_dimensions();

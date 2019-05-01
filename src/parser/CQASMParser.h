@@ -7,10 +7,12 @@
 #include "libQasm.hpp"
 #include "crossbar/operations/Operation.h"
 #include "crossbar/operations/Shuttling.h"
-#include "crossbar/operations/ZGate.h"
+#include "crossbar/operations/ShuttleGate.h"
+#include "crossbar/operations/SingleGate.h"
+#include "crossbar/operations/CPhase.h"
 #include "crossbar/operations/SqSwap.h"
 #include "crossbar/operations/Measurement.h"
-#include "crossbar/operations/SingleGate.h"
+#include "crossbar/operations/Wait.h"
 
 class CQASMParser {
 public:
