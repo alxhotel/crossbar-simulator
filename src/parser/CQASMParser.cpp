@@ -65,7 +65,7 @@ Operation* CQASMParser::translate_operation(compiler::Operation* operation, int 
 	std::transform(gate_type.begin(), gate_type.end(),gate_type.begin(), ::tolower);
 
 	//std::vector<long unsigned int> qubit_indices;
-	std::vector<long unsigned int> qubit_indices = operation->getQubitsInvolved().getSelectedQubits().getIndices();
+	std::vector<size_t> qubit_indices = operation->getQubitsInvolved().getSelectedQubits().getIndices();
 	if (qubit_indices.size() == 0) {
 		std::vector<size_t> first_qubit = operation->getTwoQubitPairs().first.getSelectedQubits().getIndices();
 		std::vector<size_t> second_qubit = operation->getTwoQubitPairs().second.getSelectedQubits().getIndices();
@@ -89,9 +89,13 @@ Operation* CQASMParser::translate_operation(compiler::Operation* operation, int 
 	}
 	
 	// One-qubit gate: method z-gate
-	else if (gate_type == "z_shuttle_left") {
+	else if (gate_type == "z_shuttle_left"
+		|| gate_type == "s_shuttle_left" || gate_type == "t_shuttle_left"
+		|| gate_type == "sdag_shuttle_left" || gate_type == "tdag_shuttle_left") {
 		return new ShuttleGate(ShuttleGate::DIR_LEFT, qubit_indices.front(), line_number);
-	} else if (gate_type == "z_shuttle_right") {
+	} else if (gate_type == "z_shuttle_right"
+		|| gate_type == "s_shuttle_right" || gate_type == "t_shuttle_right"
+		|| gate_type == "sdag_shuttle_right" || gate_type == "tdag_shuttle_right") {
 		return new ShuttleGate(ShuttleGate::DIR_RIGHT, qubit_indices.front(), line_number);
 	}
 	
@@ -111,7 +115,7 @@ Operation* CQASMParser::translate_operation(compiler::Operation* operation, int 
 	// Two-qubit gate: sqrt(SWAP)
 	else if (gate_type == "sqswap") {
 		return new SqSwap(qubit_indices.front(), qubit_indices.back(), line_number);
-	} else if (gate_type == "cphase") {
+	} else if (gate_type == "cz") {
 		return new CPhase(qubit_indices.front(), qubit_indices.back(), line_number);
 	}
 	
@@ -133,6 +137,11 @@ Operation* CQASMParser::translate_operation(compiler::Operation* operation, int 
 	
 	// Error
 	else {
-		throw std::runtime_error("Gate not supported at line " + line_number);
+		throw std::runtime_error(
+			std::string("Gate `")
+			+ gate_type
+			+ std::string("` not supported at line ")
+			+ std::to_string(line_number)
+		);
 	}
 }

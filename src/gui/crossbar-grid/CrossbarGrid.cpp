@@ -15,15 +15,9 @@ QPen CrossbarGrid::BLUE_PEN_DASHED = QPen(QBrush(QColor(100, 100, 200)), Crossba
  * Constructor
  */
 CrossbarGrid::CrossbarGrid(QWidget* parent, CrossbarModel* model) : QGraphicsView(parent) {
-	this->model = model;
 	this->scene = new QGraphicsScene(this);
 	this->setScene(scene);
-	
-	// Init size from model
-	this->notified_resize();
-	
-	// Subscribe to all notifications
-	this->model->subscribe(this);
+	this->setModel(model);
 }
 
 /**
@@ -268,7 +262,7 @@ void CrossbarGrid::notified_resize_slot() {
 	this->height = 2 * CrossbarGrid::OUTER_MARGIN + (this->m + 1) * CrossbarGrid::SQUARE_WIDTH;
 	this->width = 2 * CrossbarGrid::OUTER_MARGIN + (this->n + 1) * CrossbarGrid::SQUARE_WIDTH;
 	this->setFixedSize(this->width, this->height);
-
+	
 	// Clear scene
 	this->scene->clear();
 	

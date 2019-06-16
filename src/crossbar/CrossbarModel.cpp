@@ -2,6 +2,7 @@
 #include <string>
 #include <iostream>
 #include <stdexcept>
+#include <limits.h>
 #include "CrossbarModel.h"
 
 CrossbarModel::CrossbarModel(int m, int n, int data_qubits, int ancilla_qubits) {	
@@ -12,8 +13,9 @@ CrossbarModel::CrossbarModel(int m, int n, int data_qubits, int ancilla_qubits) 
 	this->resize(m, n, data_qubits, ancilla_qubits);
 }
 
-CrossbarModel::CrossbarModel(int size, int data_qubits, int ancilla_qubits) {	
-	CrossbarModel(size, size, data_qubits, ancilla_qubits);
+CrossbarModel::CrossbarModel(int size, int data_qubits, int ancilla_qubits)
+	: CrossbarModel(size, size, data_qubits, ancilla_qubits) {
+	
 }
 
 CrossbarModel::~CrossbarModel() {
@@ -86,7 +88,7 @@ void CrossbarModel::add_constraints() {
 		}
 	}
 	
-	this->wave_constraint = new naxos::NsIntVar(*this->pm, 0, 5 * 1000 * 1000);
+	this->wave_constraint = new naxos::NsIntVar(*this->pm, 0, INT_MAX);
 	this->wave_column_constraint = new naxos::NsIntVar(*this->pm, 0, 1);
 }
 
@@ -677,7 +679,7 @@ void CrossbarModel::resize(int m, int n, int data_qubits, int ancilla_qubits) {
 		// In line
 		this->inline_configuration();
 	}
-		
+	
 	// Init constraints
 	this->init_constraints();
 	

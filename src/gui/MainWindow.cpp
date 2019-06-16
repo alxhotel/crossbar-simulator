@@ -92,7 +92,7 @@ void MainWindow::draw_window() {
 
 	// Visual crossbar grid
 	delete ui->crossbarGrid;
-	this->grid = new CrossbarGrid(ui->centralWidget, this->model);
+	this->grid = new CrossbarGrid(ui->centralWidget, this->model);	
 	this->ui->horizontalLayout_2->insertWidget(1, this->grid);
 	this->connect(this->grid, SIGNAL(notified_signal()), this->grid, SLOT(notified_slot()));
 	this->connect(this->grid, SIGNAL(notified_resize_signal()), this->grid, SLOT(notified_resize_slot()));

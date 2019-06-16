@@ -88,7 +88,7 @@ void SqSwap::check_static_constraints(CrossbarModel* model) {
 
 	// Bottom barrier
 	if (origin_bottom_i > 0) {
-		if (model->is_h_barrier_down(origin_top_i - 1)) {
+		if (model->is_h_barrier_down(origin_bottom_i - 1)) {
 			throw std::runtime_error(
 				std::string("Conflict: The horizontal barrier ")
 				+ std::to_string(origin_top_i - 1)

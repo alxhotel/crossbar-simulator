@@ -72,7 +72,6 @@ void SetupWindow::create_button_clicked() {
 
 		this->open_main_window(size, data_qubits, ancilla_qubits);
 	} catch (std::runtime_error e) {
-		// TODO
 		this->show_alert("Bad validation", e.what());
 	}
 }
@@ -147,7 +146,5 @@ bool SetupWindow::eventFilter(QObject* obj, QEvent* event) {
 
 void SetupWindow::show_alert(const char* type, const char* message) {
 	std::cout << "[" << type << "] " << message << std::endl << std::flush;
-	QErrorMessage* error_dialog = new QErrorMessage(this);
-	error_dialog->showMessage(message);
-	error_dialog->exec();
+	QMessageBox::warning(this, tr(type), tr(message));
 }
