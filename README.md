@@ -13,15 +13,24 @@
 
 ## Installation
 
-```
+```sh
 sudo apt-get install build-essential libfontconfig1 qt5-default
+```
+
+## Build
+
+```sh
+mkdir cbuild
+cd cbuild
+cmake ..
+make
 ```
 
 ## Structure
 
 ```
 - gui			-- GUI elements
-- crossbar      -- Crossbar model
+- crossbar		-- Crossbar model
 - parser		-- cQASM parser
 - libs			-- Library dependencies
 ```

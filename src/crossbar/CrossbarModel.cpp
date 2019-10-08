@@ -669,8 +669,7 @@ void CrossbarModel::resize(int m, int n, int data_qubits, int ancilla_qubits) {
 	this->qubits.clear();
 	
 	// Position Placement
-	bool idle_configuration = (ceil((float) this->m / 2) * ceil((float) this->n / 2) >= data_qubits)
-		&& (floor(this->m / 2) * floor(this->m / 2) >= ancilla_qubits);
+	bool idle_configuration = (ceil((float) (this->m * this->n) / 2)) >= (data_qubits + ancilla_qubits);
 	
 	if (idle_configuration) {
 		// Idle configurations

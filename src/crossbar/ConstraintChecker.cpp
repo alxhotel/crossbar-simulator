@@ -74,6 +74,19 @@ int ConstraintChecker::validate(CrossbarModel* model, std::vector<std::vector<Op
 			}
 		}
 		
+		// Operation is starting
+		for (const auto &interval : intervals) {
+			if (interval.low == curr_cycle) {
+				Operation* operation = interval.value;
+				try {
+					operation->check_static_constraints(model);
+				} catch (std::runtime_error e) {
+					throw std::runtime_error(std::string(e.what())
+							+ " at line " + std::to_string(operation->get_line_number()));
+				}
+			}
+		}
+		
 		// Operation is executing
 		std::vector<Intervals::Interval<int, Operation*> > current_intervals;
 		for (const auto &interval : intervals) {
@@ -82,6 +95,7 @@ int ConstraintChecker::validate(CrossbarModel* model, std::vector<std::vector<Op
 			}
 		}
 
+		std::cout << current_intervals.size() << std::endl << std::flush;
 		ConstraintChecker::solve_parameters(model, current_intervals, curr_cycle);
 		
 		// Apply the solution
@@ -103,22 +117,9 @@ int ConstraintChecker::validate(CrossbarModel* model, std::vector<std::vector<Op
 				model->set_d_line(k, model->get_d_line_constraint(k)->value());
 			}
 		}
-		/*if (model->get_active_wave() != 0 && this->model->get_wave_constraint()->value() == 0) {
-			model->toggle_wave(this->model->get_wave_column_constraint()->value());
-		}*/
-		
-		// Operation is starting
-		for (const auto &interval : intervals) {
-			if (interval.low == curr_cycle) {
-				Operation* operation = interval.value;
-				try {
-					operation->check_static_constraints(model);
-				} catch (std::runtime_error e) {
-					throw std::runtime_error(std::string(e.what())
-							+ " at line " + std::to_string(operation->get_line_number()));
-				}
-			}
-		}
+		//if (model->get_active_wave() != 0 && this->model->get_wave_constraint()->value() == 0) {
+		//	model->toggle_wave(this->model->get_wave_column_constraint()->value());
+		//}
 	}
 	
 	return 0;
