@@ -1,0 +1,6 @@
+[submodule "libs/json"]
+	path = libs/json
+	url = https://github.com/nlohmann/json.git
+[submodule "libs/naxos"]
+	path = libs/naxos
+	url = https://github.com/pothitos/naxos.git

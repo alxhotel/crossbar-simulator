@@ -1,4 +1,5 @@
 # Compiled project
+build/
 cmake-build/
 cmake-build-debug/
 
