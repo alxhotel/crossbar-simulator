@@ -1,0 +1,8 @@
+setup.py
+libQasm/__init__.py
+libQasm/libQasm.py
+libQasm.egg-info/PKG-INFO
+libQasm.egg-info/SOURCES.txt
+libQasm.egg-info/dependency_links.txt
+libQasm.egg-info/not-zip-safe
+libQasm.egg-info/top_level.txt
