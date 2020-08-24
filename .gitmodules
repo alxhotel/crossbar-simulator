@@ -4,3 +4,6 @@
 [submodule "libs/naxos"]
 	path = libs/naxos
 	url = https://github.com/pothitos/naxos.git
+[submodule "libs/libqasm/qasm_flex_bison/test/doctest"]
+	path = libs/libqasm/qasm_flex_bison/test/doctest
+	url = https://github.com/onqtam/doctest.git
